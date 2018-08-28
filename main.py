@@ -37,8 +37,8 @@ width = 32
 height = 32
 channel = 3
 batch_size = 250
-training_epochs = 15
-learning_rate = 0.0005
+training_epochs = 5
+learning_rate = 0.0001
 keep_drop = 0.75
 
 
@@ -62,7 +62,7 @@ layer1 = tf.nn.dropout(layer1, keep_prob=keep_prob)
 W2 = tf.get_variable("W2", shape=[5, 5, 32, 64], initializer=tf.contrib.layers.xavier_initializer())
 b2 = tf.Variable(tf.random_normal([64]))
 layer2 = tf.nn.conv2d(layer1, W2, strides=[1, 1, 1, 1], padding='SAME') + b2
-layer2 = tf.nn.max_pool(layer2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
+#layer2 = tf.nn.max_pool(layer2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
 layer2 = tf.nn.relu(layer2)
 layer2 = tf.nn.dropout(layer2, keep_prob=keep_prob)
 
@@ -79,18 +79,29 @@ layer4 = tf.nn.conv2d(layer3, W4, strides=[1, 1, 1, 1], padding='SAME') + b4
 layer4 = tf.nn.relu(layer4)
 layer4 = tf.nn.dropout(layer4, keep_prob=keep_prob)
 
+W5 = tf.get_variable("W5", shape=[3, 3, 256, 512], initializer=tf.contrib.layers.xavier_initializer())
+b5 = tf.Variable(tf.random_normal([512]))
+layer5 = tf.nn.conv2d(layer4, W5, strides=[1, 1, 1, 1], padding='SAME') + b5
+layer5 = tf.nn.relu(layer5)
+layer5 = tf.nn.dropout(layer5, keep_prob=keep_prob)
+
 
 # to fully connected layer, size 8, 8, 128 with 2 pooling
-layer4_flat = tf.reshape(layer4, [-1, 8 * 8 * 256])
+layer5_flat = tf.reshape(layer5, [-1, 16 * 16 * 512])
 
-FC_W1 = tf.get_variable("FC_W1", shape=[8 * 8 * 256, 128], initializer=tf.contrib.layers.xavier_initializer())
-FC_b1 = tf.Variable(tf.random_normal([128]))
-FC_layer1 = tf.nn.relu(tf.matmul(layer4_flat, FC_W1)+FC_b1)
+FC_W1 = tf.get_variable("FC_W1", shape=[16 * 16 * 512, 256], initializer=tf.contrib.layers.xavier_initializer())
+FC_b1 = tf.Variable(tf.random_normal([256]))
+FC_layer1 = tf.nn.relu(tf.matmul(layer5_flat, FC_W1)+FC_b1)
 FC_layer1 = tf.nn.dropout(FC_layer1, keep_prob=keep_prob)
 
-FC_W2 = tf.get_variable("FC_W2", shape=[128, 10], initializer=tf.contrib.layers.xavier_initializer())
-FC_b2 = tf.Variable(tf.random_normal([10]))
-hypo = tf.matmul(FC_layer1, FC_W2)+FC_b2
+FC_W2 = tf.get_variable("FC_W2", shape=[256, 128], initializer=tf.contrib.layers.xavier_initializer())
+FC_b2 = tf.Variable(tf.random_normal([128]))
+FC_layer2 = tf.nn.relu(tf.matmul(FC_layer1, FC_W2)+FC_b2)
+FC_layer2 = tf.nn.dropout(FC_layer2, keep_prob=keep_prob)
+
+FC_W3 = tf.get_variable("FC_W3", shape=[128, 10], initializer=tf.contrib.layers.xavier_initializer())
+FC_b3 = tf.Variable(tf.random_normal([10]))
+hypo = tf.matmul(FC_layer2, FC_W3)+FC_b3
 y_pred = tf.nn.softmax(hypo)
 
 # cost and optimizer
@@ -103,6 +114,7 @@ accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
 
 # learn
 sess.run(tf.global_variables_initializer())
+saver = tf.train.Saver()
 for epoch in range(training_epochs):
     avg_cost = 0
     total_batch = int(x_train.size / batch_size)
@@ -116,4 +128,6 @@ for epoch in range(training_epochs):
                   , "Accuracy: ", get_accuracy(x_test, y_test, sess))
     print('Epoch:', '%04d' % (epoch + 1), 'cost = ', '{:.9f}'.format(avg_cost))
     print("Accuracy: ", get_accuracy(x_test, y_test, sess))
+
+saver.save(sess, 'my_test_model')
 
