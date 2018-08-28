@@ -53,53 +53,44 @@ y_test = (tf.squeeze(tf.one_hot(y_test, img_class), axis=1))
 # graphs
 
 # 11x11x3 size, 32 layers
-W1 = tf.get_variable("W1", shape=[11, 11, 3, 32], initializer=tf.contrib.layers.xavier_initializer())
+W1 = tf.get_variable("W1", shape=[5, 5, 3, 32], initializer=tf.contrib.layers.xavier_initializer())
 b1 = tf.Variable(tf.random_normal([32]))
 layer1 = tf.nn.conv2d(X, W1, strides=[1, 1, 1, 1], padding='SAME') + b1
 layer1 = tf.nn.relu(layer1)
 layer1 = tf.nn.dropout(layer1, keep_prob=keep_prob)
 
-W2 = tf.get_variable("W2", shape=[9, 9, 32, 64], initializer=tf.contrib.layers.xavier_initializer())
+W2 = tf.get_variable("W2", shape=[5, 5, 32, 64], initializer=tf.contrib.layers.xavier_initializer())
 b2 = tf.Variable(tf.random_normal([64]))
 layer2 = tf.nn.conv2d(layer1, W2, strides=[1, 1, 1, 1], padding='SAME') + b2
+layer2 = tf.nn.max_pool(layer2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
 layer2 = tf.nn.relu(layer2)
 layer2 = tf.nn.dropout(layer2, keep_prob=keep_prob)
 
-W3 = tf.get_variable("W3", shape=[7, 7, 64, 128], initializer=tf.contrib.layers.xavier_initializer())
+W3 = tf.get_variable("W3", shape=[3, 3, 64, 128], initializer=tf.contrib.layers.xavier_initializer())
 b3 = tf.Variable(tf.random_normal([128]))
 layer3 = tf.nn.conv2d(layer2, W3, strides=[1, 1, 1, 1], padding='SAME') + b3
+layer3 = tf.nn.max_pool(layer3, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME')
 layer3 = tf.nn.relu(layer3)
 layer3 = tf.nn.dropout(layer3, keep_prob=keep_prob)
 
-W4 = tf.get_variable("W4", shape=[5, 5, 128, 256], initializer=tf.contrib.layers.xavier_initializer())
+W4 = tf.get_variable("W4", shape=[3, 3, 128, 256], initializer=tf.contrib.layers.xavier_initializer())
 b4 = tf.Variable(tf.random_normal([256]))
 layer4 = tf.nn.conv2d(layer3, W4, strides=[1, 1, 1, 1], padding='SAME') + b4
 layer4 = tf.nn.relu(layer4)
 layer4 = tf.nn.dropout(layer4, keep_prob=keep_prob)
 
-W5 = tf.get_variable("W5", shape=[3, 3, 256, 512], initializer=tf.contrib.layers.xavier_initializer())
-b5 = tf.Variable(tf.random_normal([512]))
-layer5 = tf.nn.conv2d(layer4, W5, strides=[1, 1, 1, 1], padding='SAME') + b5
-layer5 = tf.nn.relu(layer5)
-layer5 = tf.nn.dropout(layer5, keep_prob=keep_prob)
 
-# to fully connected layer, size 32, 32, 128 without pooling
-layer5_flat = tf.reshape(layer5, [-1, 32 * 32 * 512])
+# to fully connected layer, size 8, 8, 128 with 2 pooling
+layer4_flat = tf.reshape(layer4, [-1, 8 * 8 * 256])
 
-FC_W1 = tf.get_variable("FC_W1", shape=[32 * 32 * 512, 256], initializer=tf.contrib.layers.xavier_initializer())
-FC_b1 = tf.Variable(tf.random_normal([256]))
-FC_layer1 = tf.nn.relu(tf.matmul(layer5_flat, FC_W1)+FC_b1)
+FC_W1 = tf.get_variable("FC_W1", shape=[8 * 8 * 256, 128], initializer=tf.contrib.layers.xavier_initializer())
+FC_b1 = tf.Variable(tf.random_normal([128]))
+FC_layer1 = tf.nn.relu(tf.matmul(layer4_flat, FC_W1)+FC_b1)
 FC_layer1 = tf.nn.dropout(FC_layer1, keep_prob=keep_prob)
 
-FC_W2 = tf.get_variable("FC_W2", shape=[256, 128], initializer=tf.contrib.layers.xavier_initializer())
-FC_b2 = tf.Variable(tf.random_normal([128]))
-FC_layer2 = tf.nn.relu(tf.matmul(FC_layer1, FC_W2)+FC_b2)
-FC_layer2 = tf.nn.dropout(FC_layer2, keep_prob=keep_prob)
-
-
-FC_W3 = tf.get_variable("FC_W3", shape=[128, img_class], initializer=tf.contrib.layers.xavier_initializer())
-FC_b3 = tf.Variable(tf.random_normal([img_class]))
-hypo = tf.matmul(FC_layer2, FC_W3)+FC_b3
+FC_W2 = tf.get_variable("FC_W2", shape=[128, 10], initializer=tf.contrib.layers.xavier_initializer())
+FC_b2 = tf.Variable(tf.random_normal([10]))
+hypo = tf.matmul(FC_layer1, FC_W2)+FC_b2
 y_pred = tf.nn.softmax(hypo)
 
 # cost and optimizer
