@@ -38,7 +38,7 @@ height = 32
 channel = 3
 batch_size = 250
 training_epochs = 5
-learning_rate = 0.0001
+learning_rate = 0.001
 keep_drop = 0.75
 
 
